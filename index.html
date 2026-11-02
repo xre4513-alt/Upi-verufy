@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Camera Merchant QR Verifier</title>
+    <title>Live Camera Merchant QR Verifi</title>
     <!-- Html5-Qrcode Library for Live Camera -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
@@ -41,7 +41,7 @@ function onScanSuccess(decodedText, decodedResult) {
         document.getElementById('extractedUpi').innerText = upiId;
         document.getElementById('verifiedName').innerText = "Verifying with FireAPI...";
         
-        // FireAPI Call with CORS Proxy
+        // FireAPI Call with CodeTabs Proxy
         verifyVpaWithFireAPI(upiId);
         
         // Scan successful hone ke baad camera stop karne ke liye
@@ -79,8 +79,8 @@ async function verifyVpaWithFireAPI(upiId) {
     const apiKey = "b1423719-9601-4ff2-8ac9-87127fb36134"; // Aapki actual API key
     const fireApiUrl = `https://api.fireapi.io/secure-app/upi/find-vpa?upi_id=${encodeURIComponent(upiId)}`;
     
-    // CORS bypass karne ke liye proxy URL add kiya gaya hai
-    const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(fireApiUrl);
+    // CodeTabs CORS Proxy use kar rahe hain jo headers ko better support karta hai
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=` + encodeURIComponent(fireApiUrl);
 
     try {
         const response = await fetch(proxyUrl, {
