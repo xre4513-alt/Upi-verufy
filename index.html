@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Camera Merchant QR Scanner</title>
+    <title>Live Camera Merchant QR Verifier</title>
     <!-- Html5-Qrcode Library for Live Camera -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
@@ -32,7 +32,6 @@
 
 <script>
 function onScanSuccess(decodedText, decodedResult) {
-    // Jaise hi QR scan hoga, yeh function chalega
     document.getElementById('resultBox').style.display = "block";
     document.getElementById('rawPayload').innerText = decodedText;
 
@@ -42,10 +41,10 @@ function onScanSuccess(decodedText, decodedResult) {
         document.getElementById('extractedUpi').innerText = upiId;
         document.getElementById('verifiedName').innerText = "Verifying with FireAPI...";
         
-        // FireAPI Call
+        // FireAPI Call with CORS Proxy
         verifyVpaWithFireAPI(upiId);
         
-        // Scan hone ke baad camera rokne ke liye
+        // Scan successful hone ke baad camera stop karne ke liye
         html5QrcodeScanner.clear();
     } else {
         document.getElementById('extractedUpi').innerText = "UPI ID nahi mili (Invalid QR)";
@@ -54,7 +53,7 @@ function onScanSuccess(decodedText, decodedResult) {
 }
 
 function onScanFailure(error) {
-    // Scanning errors ko ignore karte hain taaki camera continuously scan karta rahe
+    // Scanning errors ko ignore kiya gaya hai taaki camera continuous scan karta rahe
 }
 
 // Camera Scanner Initialize karna
@@ -78,10 +77,13 @@ function extractUpiId(qrText) {
 
 async function verifyVpaWithFireAPI(upiId) {
     const apiKey = "b1423719-9601-4ff2-8ac9-87127fb36134"; // Aapki actual API key
-    const apiUrl = `https://api.fireapi.io/secure-app/upi/find-vpa?upi_id=${encodeURIComponent(upiId)}`;
+    const fireApiUrl = `https://api.fireapi.io/secure-app/upi/find-vpa?upi_id=${encodeURIComponent(upiId)}`;
+    
+    // CORS bypass karne ke liye proxy URL add kiya gaya hai
+    const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(fireApiUrl);
 
     try {
-        const response = await fetch(apiUrl, {
+        const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
                 'x-api-key': apiKey,
@@ -100,7 +102,7 @@ async function verifyVpaWithFireAPI(upiId) {
         }
     } catch (error) {
         console.error("API Error:", error);
-        document.getElementById('verifiedName').innerText = "API Call Failed (CORS error)";
+        document.getElementById('verifiedName').innerText = "API Call Failed (Proxy Error)";
     }
 }
 </script>
