@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Camera Merchant QR Scanner</title>
+    <!-- Html5-Qrcode Library for Live Camera -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; max-width: 500px; margin: auto; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #reader { width: 100%; border-radius: 5px; overflow: hidden; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; background: #e9ecef; word-break: break-all; }
+        h2 { color: #333; font-size: 20px; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Live Camera QR Verifier</h2>
+    <p>Apne phone ke camera se merchant QR code scan karein:</p>
+    
+    <!-- Camera view div -->
+    <div id="reader"></div>
+
+    <div id="resultBox" class="result" style="display:none;">
+        <p><strong>Raw Data:</strong> <span id="rawPayload"></span></p>
+        <p><strong>Extracted UPI ID:</strong> <span id="extractedUpi"></span></p>
+        <p><strong>Verified Name:</strong> <span id="verifiedName" style="color: green; font-weight: bold;">-</span></p>
+    </div>
+</div>
+
+<script>
+function onScanSuccess(decodedText, decodedResult) {
+    // Jaise hi QR scan hoga, yeh function chalega
+    document.getElementById('resultBox').style.display = "block";
+    document.getElementById('rawPayload').innerText = decodedText;
+
+    const upiId = extractUpiId(decodedText);
+
+    if (upiId) {
+        document.getElementById('extractedUpi').innerText = upiId;
+        document.getElementById('verifiedName').innerText = "Verifying with FireAPI...";
+        
+        // FireAPI Call
+        verifyVpaWithFireAPI(upiId);
+        
+        // Scan hone ke baad camera rokne ke liye
+        html5QrcodeScanner.clear();
+    } else {
+        document.getElementById('extractedUpi').innerText = "UPI ID nahi mili (Invalid QR)";
+        document.getElementById('verifiedName').innerText = "N/A";
+    }
+}
+
+function onScanFailure(error) {
+    // Scanning errors ko ignore karte hain taaki camera continuously scan karta rahe
+}
+
+// Camera Scanner Initialize karna
+const html5QrcodeScanner = new Html5QrcodeScanner(
+    "reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+function extractUpiId(qrText) {
+    try {
+        if (qrText.startsWith("upi://pay")) {
+            const urlParams = new URLSearchParams(qrText.split('?')[1]);
+            return urlParams.get('pa');
+        } else if (qrText.includes("@")) {
+            return qrText.trim();
+        }
+    } catch(e) {
+        console.error(e);
+    }
+    return null;
+}
+
+async function verifyVpaWithFireAPI(upiId) {
+    const apiKey = "b1423719-9601-4ff2-8ac9-87127fb36134"; // Aapki actual API key
+    const apiUrl = `https://api.fireapi.io/secure-app/upi/find-vpa?upi_id=${encodeURIComponent(upiId)}`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'x-api-key': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (data && data.data && data.data.account_holder_name) {
+            document.getElementById('verifiedName').innerText = data.data.account_holder_name;
+        } else if (data.message) {
+            document.getElementById('verifiedName').innerText = "Error: " + data.message;
+        } else {
+            document.getElementById('verifiedName').innerText = "Name fetch nahi ho paya";
+        }
+    } catch (error) {
+        console.error("API Error:", error);
+        document.getElementById('verifiedName').innerText = "API Call Failed (CORS error)";
+    }
+}
+</script>
+
+</body>
+</html>
